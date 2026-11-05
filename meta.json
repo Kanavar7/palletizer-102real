@@ -9,7 +9,7 @@
     }
   ],
   "visibility": "private",
-  "url": "",
+  "url": "https://github.com/Kanavar7/palletizer-102real.git",
   "description": "Modular generic service: palletizer",
   "markdown_link": "README.md",
   "entrypoint": "dist/main",
