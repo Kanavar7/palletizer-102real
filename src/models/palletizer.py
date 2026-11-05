@@ -221,6 +221,16 @@ class Palletizer(Generic, EasyResource):  # noqa: F405  (Generic comes from the 
             self.placed = []
             await self.sequencer.do_command({"reset_cursor": True})
             return {"cleared": True}
+        # autopack: check if there is room, place while there is
+        # swap full trays
+        if verb == "autopack":
+            max_boxes_to_pack = command.get("max_boxes_to_pack")
+            if max_boxes_to_pack is not None:
+                try:
+                    max_boxes_to_pack = int(max_boxes_to_pack)
+                except (TypeError, ValueError):
+                    return {"error": "max boxes to pack must be a number"}
+            return await self.autopack(max_boxes_to_pack)
 
         # Route new verbs here: match the verb, call the method,
         # return what it returns.
@@ -339,6 +349,28 @@ class Palletizer(Generic, EasyResource):  # noqa: F405  (Generic comes from the 
 
         # Report the count, the answer a caller reads.
         return len(self.placed)
+
+    async def autopack(self, max_boxes_to_pack=None):
+        """The loop: place while there is room, swap a full tray, stop at
+        max_boxes_to_pack."""
+        boxes_per_pallet = self.columns * self.rows * self.layers
+
+        if max_boxes_to_pack is None:
+            max_boxes_to_pack = boxes_per_pallet
+
+        placed = 0
+        while placed < max_boxes_to_pack:
+            # TODO 1: if there is no room, swap the tray and `continue`.
+            if not await self.pallet_has_room():
+                await self.swap_tray()
+                continue
+            # TODO 2: otherwise place one box.
+            await self.place()
+            placed += 1
+
+        result = {"Number Packed": placed, "Max Boxes": max_boxes_to_pack}
+        self.logger.info(f"autopack: {result}")
+        return result
 
     # --------------------------------------------------------------- motion
 
